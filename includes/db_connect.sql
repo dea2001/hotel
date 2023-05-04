@@ -47,3 +47,9 @@ INSERT INTO rooms (room_name, capacity, price) VALUES
 ('Family Room', 4, 200.00),
 ('Presidential Suite', 2, 500.00),
 ('Penthouse Suite', 2, 700.00);
+
+
+ALTER TABLE bookings
+ADD COLUMN total_price DECIMAL(10, 2) NOT NULL,
+ADD CONSTRAINT fk_bookings_rooms
+FOREIGN KEY (room_id) REFERENCES rooms(id);

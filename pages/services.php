@@ -51,22 +51,24 @@ $result = $conn->query($query);
     </div>
   </main>
 
-  <!-- Popup form for booking -->
-  <div id="booking-form-popup" style="display: none;">
-    <form id="booking-form">
-      <h2>Book Now</h2>
-      <p>Room: <span id="room-name"></span></p>
-      <p>Price per night: <span id="price-per-night"></span></p>
-      <label for="start-date">Start Date:</label>
-      <input type="date" name="start-date" id="start-date" required>
-      <label for="end-date">End Date:</label>
-      <input type="date" name="end-date" id="end-date" required>
-      <label for="num-people">Number of People:</label>
-      <input type="number" name="num-people" id="num-people" min="1" required>
-      <p>Total Price: $<span id="total-price"></span></p>
-      <button type="submit">Book</button>
-    </form>
-  </div>
+
+<!-- Popup form for booking -->
+<div id="booking-form-popup">
+  <form id="booking-form">
+    <h2>Book Now</h2>
+    <p>Room: <span id="room-name"></span></p>
+    <p>Price per night: $<span id="price-per-night"></span></p>
+    <input type="hidden" name="room-id" id="room-id">
+    <label for="start-date">Start Date:</label>
+    <input type="date" name="start-date" id="start-date" required>
+    <label for="end-date">End Date:</label>
+    <input type="date" name="end-date" id="end-date" required>
+    <label for="num-people">Number of People:</label>
+    <input type="number" name="num-people" id="num-people" min="1" required>
+    <p>Total Price: $<span id="total-price"></span></p>
+    <button type="submit">Book</button>
+  </form>
+</div>
 
   <footer>
     <div class="container">
@@ -85,24 +87,31 @@ $result = $conn->query($query);
   <script>
 // Function to handle the "Book Now" button click event
 function handleBookNow() {
-    var room = this.parentNode;
-    var roomName = room.querySelector("h3").textContent;
-    var pricePerNight = parseFloat(room.querySelector("p:nth-of-type(2)").textContent.split("$")[1]);
+  var room = this.parentNode;
+  var roomName = room.querySelector("h3").textContent;
+  var pricePerNight = parseFloat(room.querySelector("p:nth-of-type(2)").textContent.split("$")[1]);
 
-    document.getElementById("room-name").textContent = roomName;
-    document.getElementById("price-per-night").textContent = pricePerNight.toFixed(2);
-    document.getElementById("total-price").textContent = "0.00";
-    document.getElementById("booking-form-popup").style.display = "block";
+  document.getElementById("room-name").textContent = roomName;
+  document.getElementById("price-per-night").textContent = pricePerNight.toFixed(2);
+  document.getElementById("total-price").textContent = "0.00";
+  document.getElementById("booking-form-popup").style.display = "block";
 
-    // Scroll to the bottom of the page
-    window.scrollTo(0, document.body.scrollHeight);
+  // Scroll to the bottom of the page
+  window.scrollTo(0, document.body.scrollHeight);
+
+  // Attach the form submission handler to the dynamically created form
+  document.getElementById("booking-form").addEventListener("submit", handleFormSubmit);
 }
 
-// Calculate the total price based on the selected date range and number of people
+// Function to calculate the price
 function calculatePrice() {
-    var startDate = new Date(document.getElementById("start-date").value);
-    var endDate = new Date(document.getElementById("end-date").value);
-    var pricePerNight = parseFloat(document.getElementById("price-per-night").textContent);
+  var startDate = document.getElementById("start-date").value;
+  var endDate = document.getElementById("end-date").value;
+  var pricePerNight = parseFloat(document.getElementById("price-per-night").textContent);
+
+  if (startDate && endDate) {
+    startDate = new Date(startDate);
+    endDate = new Date(endDate);
 
     // Calculate the number of nights staying
     var numNights = Math.ceil((endDate - startDate) / (1000 * 60 * 60 * 24));
@@ -111,54 +120,54 @@ function calculatePrice() {
     var totalPrice = pricePerNight * numNights;
 
     document.getElementById("total-price").textContent = totalPrice.toFixed(2);
+  } else {
+    // Set the total price to zero if the dates are not selected
+    document.getElementById("total-price").textContent = "0.00";
+  }
 }
+
+// Add event listener to the date inputs
+document.getElementById("start-date").addEventListener("change", calculatePrice);
+document.getElementById("end-date").addEventListener("change", calculatePrice);
+
+
+
+// Attach the "Book Now" event listener to the existing buttons
+var bookNowBtns = document.querySelectorAll(".book-now-btn");
+bookNowBtns.forEach(function (btn) {
+  btn.addEventListener("click", handleBookNow);
+});
 
 // Handle the form submission
 function handleFormSubmit(event) {
-    event.preventDefault();
+  event.preventDefault();
 
-    var startDate = document.getElementById("start-date").value;
-    var endDate = document.getElementById("end-date").value;
-    var numPeople = parseInt(document.getElementById("num-people").value);
-    var roomName = document.getElementById("room-name").textContent;
-    var totalPrice = parseFloat(document.getElementById("total-price").textContent);
+  var startDate = document.getElementById("start-date").value;
+  var endDate = document.getElementById("end-date").value;
+  var roomName = document.getElementById("room-name").textContent;
+  var totalPrice = parseFloat(document.getElementById("total-price").textContent);
 
-    // Create an object to send to the server
-    var bookingData = {
-        startDate: startDate,
-        endDate: endDate,
-        numPeople: numPeople,
-        roomName: roomName,
-        totalPrice: totalPrice
-    };
+  // Create a FormData object and append the form data
+  var formData = new FormData();
+  formData.append("start-date", startDate);
+  formData.append("end-date", endDate);
+  formData.append("room-name", roomName);
+  formData.append("total-price", totalPrice);
 
-    var xhr = new XMLHttpRequest();
-    xhr.open("POST", "save_booking.php", true);
-    xhr.setRequestHeader("Content-Type", "application/json");
-    xhr.onload = function () {
-        if (xhr.status === 200) {
-            alert("Booking saved!");
-            document.getElementById("booking-form-popup").style.display = "none";
-            document.getElementById("booking-form").reset();
-        } else {
-            alert("An error occurred while saving the booking. Please try again.");
-        }
-    };
-    xhr.send(JSON.stringify(bookingData));
+  // Send an AJAX request to save the booking
+  var xhr = new XMLHttpRequest();
+  xhr.open("POST", "save_booking.php", true);
+  xhr.onload = function () {
+    if (xhr.status === 200) {
+      alert("Booking saved!");
+      document.getElementById("booking-form-popup").style.display = "none";
+      document.getElementById("booking-form").reset();
+    } else {
+      alert("An error occurred while saving the booking. Please try again.");
+    }
+  };
+  xhr.send(formData);
 }
-
-var bookNowBtns = document.querySelectorAll(".book-now-btn");
-bookNowBtns.forEach(function (btn) {
-    btn.addEventListener("click", handleBookNow);
-});
-
-document.getElementById("start-date").addEventListener("change", calculatePrice);
-document.getElementById("end-date").addEventListener("change", calculatePrice);
-document.getElementById("num-people").addEventListener("input", calculatePrice);
-
-document.getElementById("booking-form").addEventListener("submit", handleFormSubmit);
-
-
 
 </script>
 </body>
