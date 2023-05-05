@@ -14,6 +14,7 @@ $result = $conn->query($query);
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Services - Fictitious Hotel</title>
   <link rel="stylesheet" href="../css/styles.css">
+  <script src="../js/script.js"></script>
 </head>
 <body>
   <header>
@@ -54,7 +55,7 @@ $result = $conn->query($query);
 
 <!-- Popup form for booking -->
 <div id="booking-form-popup">
-  <form id="booking-form">
+  <form id="booking-form" class="services-form">
     <h2>Book Now</h2>
     <p>Room: <span id="room-name"></span></p>
     <p>Price per night: $<span id="price-per-night"></span></p>
@@ -66,7 +67,7 @@ $result = $conn->query($query);
     <label for="num-people">Number of People:</label>
     <input type="number" name="num-people" id="num-people" min="1" required>
     <p>Total Price: $<span id="total-price"></span></p>
-    <button type="submit">Book</button>
+    <button class="button book-now" type="submit">Book</button>
   </form>
 </div>
 

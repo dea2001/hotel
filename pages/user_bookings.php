@@ -13,6 +13,7 @@ if (!isset($_SESSION["loggedin"]) || $_SESSION["loggedin"] !== true) {
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <title>Login - Fictitious Hotel</title>
         <link rel="stylesheet" href="../css/styles.css">
+        <script src="../js/script.js"></script>
     </head>
     <body>
         <header>
@@ -88,36 +89,36 @@ while ($row = $result->fetch_assoc()) {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>User Bookings - Fictitious Hotel</title>
     <link rel="stylesheet" href="../css/styles.css">
+    <script src="../js/script.js"></script>
     <script>
-function confirmCancelBooking(bookingId) {
-  if (confirm("Are you sure you want to cancel this booking?")) {
-    cancelBooking(bookingId);
-  }
-}
-
-function cancelBooking(bookingId) {
-  var xhr = new XMLHttpRequest();
-  xhr.open("POST", "cancel_booking.php", true);
-  xhr.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
-  xhr.onreadystatechange = function () {
-    if (xhr.readyState === XMLHttpRequest.DONE) {
-      if (xhr.status === 200) {
-        // Booking cancellation successful
-        alert("Booking canceled successfully.");
-        // Remove the booking row from the table
-        var row = document.getElementById("booking-row-" + bookingId);
-        if (row) {
-          row.parentNode.removeChild(row);
+      function confirmCancelBooking(bookingId) {
+        if (confirm("Are you sure you want to cancel this booking?")) {
+          cancelBooking(bookingId);
         }
-      } else {
-        // Booking cancellation failed
-        alert("An error occurred while canceling the booking. Please try again.");
       }
-    }
-  };
-  xhr.send("booking_id=" + encodeURIComponent(bookingId));
-}
 
+      function cancelBooking(bookingId) {
+        var xhr = new XMLHttpRequest();
+        xhr.open("POST", "cancel_booking.php", true);
+        xhr.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
+        xhr.onreadystatechange = function () {
+          if (xhr.readyState === XMLHttpRequest.DONE) {
+            if (xhr.status === 200) {
+              // Booking cancellation successful
+              alert("Booking canceled successfully.");
+              // Remove the booking row from the table
+              var row = document.getElementById("booking-row-" + bookingId);
+              if (row) {
+                row.parentNode.removeChild(row);
+              }
+            } else {
+              // Booking cancellation failed
+              alert("An error occurred while canceling the booking. Please try again.");
+            }
+          }
+        };
+        xhr.send("booking_id=" + encodeURIComponent(bookingId));
+      }
     </script>
 </head>
 <body>
@@ -145,6 +146,7 @@ function cancelBooking(bookingId) {
     <?php if (count($bookings) === 0): ?>
         <p class="no-bookings">You have no bookings.</p>
     <?php else: ?>
+        <h2>Bookings</h2>
         <table class="booking-table">
             <thead>
                 <tr>
@@ -158,21 +160,59 @@ function cancelBooking(bookingId) {
             </thead>
             <tbody>
                 <?php foreach ($bookings as $booking): ?>
-                  <tr id="booking-row-<?php echo $booking["id"]; ?>">
-                    <td><?php echo $booking["id"]; ?></td>
-                    <td><?php echo $booking["room_name"]; ?></td>
-                    <td><?php echo $booking["start_date"]; ?></td>
-                    <td><?php echo $booking["end_date"]; ?></td>
-                    <td><?php echo $booking["total_price"]; ?></td>
-                    <td>
-                      <button onclick="confirmCancelBooking(<?php echo $booking['id']; ?>)">Cancel</button>
-                    </td>
-                  </tr>
+                    <?php
+                    $hasBookingForReview = false;
+                    $bookingForReview = null;
+
+                    // Check if the user has a booking available for review
+                    $stmt = $conn->prepare("SELECT * FROM reviews WHERE booking_id = ?");
+                    $stmt->bind_param("i", $booking['id']);
+                    $stmt->execute();
+                    $result = $stmt->get_result();
+
+                    if ($result->num_rows === 0) {
+                        $hasBookingForReview = true;
+                        $bookingForReview = $booking;
+                    }
+                    ?>
+                    <tr>
+                        <td><?php echo $booking["id"]; ?></td>
+                        <td><?php echo $booking["room_name"]; ?></td>
+                        <td><?php echo $booking["start_date"]; ?></td>
+                        <td><?php echo $booking["end_date"]; ?></td>
+                        <td><?php echo $booking["total_price"]; ?></td>
+                        <td>
+                            <button onclick="confirmCancelBooking(<?php echo $booking['id']; ?>)">Cancel</button>
+                        </td>
+                    </tr>
+                    <?php if ($hasBookingForReview && $bookingForReview['id'] === $booking['id']): ?>
+                        <tr>
+                            <td colspan="6">
+                                <h2>Submit a Review</h2>
+                                <form action="submit_review.php" method="post">
+                                    <input type="hidden" name="booking_id" value="<?php echo $bookingForReview['id']; ?>">
+                                    <label for="rating">Rating:</label>
+                                    <select name="rating" id="rating" required>
+                                        <option value="">Select Rating</option>
+                                        <?php for ($i = 1; $i <= 5; $i++): ?>
+                                            <option value="<?php echo $i; ?>"><?php echo $i; ?></option>
+                                        <?php endfor; ?>
+                                    </select>
+                                    <label for="comment">Comment:</label>
+                                    <textarea name="comment" id="comment" rows="4" required></textarea>
+                                    <button type="submit">Submit</button>
+                                </form>
+                            </td>
+                        </tr>
+                    <?php endif; ?>
                 <?php endforeach; ?>
             </tbody>
         </table>
     <?php endif; ?>
 </main>
+
+
+
 
     <footer>
         <div class="container">

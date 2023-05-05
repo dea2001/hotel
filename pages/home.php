@@ -1,3 +1,39 @@
+<?php
+session_start();
+require_once "../includes/db_connect.php";
+
+// Check if the user is logged in
+if (isset($_SESSION["loggedin"]) && $_SESSION["loggedin"] === true) {
+    // User is logged in, check if they have bookings
+    $user_id = $_SESSION["id"];
+    $stmt = $conn->prepare("SELECT id FROM bookings WHERE user_id = ?");
+    $stmt->bind_param("i", $user_id);
+    $stmt->execute();
+    $stmt->store_result();
+
+    if ($stmt->num_rows > 0) {
+        // User has bookings, display the review form
+        $displayReviewForm = true;
+
+        if ($_SERVER["REQUEST_METHOD"] === "POST") {
+            // Form submission, process the review
+            $rating = $_POST["rating"];
+            $comment = $_POST["comment"];
+
+            // Save the review in the database
+            $stmt = $conn->prepare("INSERT INTO reviews (user_id, rating, comment) VALUES (?, ?, ?)");
+            $stmt->bind_param("iis", $user_id, $rating, $comment);
+            $stmt->execute();
+        }
+    }
+}
+
+// Fetch all reviews from the database
+$query = "SELECT * FROM reviews";
+$result = $conn->query($query);
+$reviews = $result->fetch_all(MYSQLI_ASSOC);
+?>
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -5,6 +41,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Fictitious Hotel</title>
   <link rel="stylesheet" href="../css/styles.css">
+  <script src="../js/script.js"></script>
 </head>
 <body>
   <header>
@@ -33,6 +70,42 @@
 
     <h2>Services</h2>
     <p>Provide an overview of the services offered by your hotel.</p>
+
+    <h2>Reviews</h2>
+    <?php if (count($reviews) === 0): ?>
+      <p>No reviews available.</p>
+    <?php else: ?>
+      <ul class="review-list">
+        <?php foreach ($reviews as $review): ?>
+          <li>
+            <div class="review-info">
+              <span class="rating">Rating: <?php echo $review['rating']; ?></span>
+              <span class="user">User ID: <?php echo $review['user_id']; ?></span>
+            </div>
+            <p class="comment"><?php echo $review['comment']; ?></p>
+          </li>
+        <?php endforeach; ?>
+      </ul>
+    <?php endif; ?>
+
+    <h2>Submit a Review</h2>
+    <?php if (isset($displayReviewForm) && $displayReviewForm === true): ?>
+      <form action="home.php" method="POST">
+        <label for="rating">Rating:</label>
+          <select name="rating" id="rating" required>
+            <option value="">Select Rating</option>
+              <?php for ($i = 1; $i <= 5; $i++): ?>
+                <option value="<?php echo "$i/5"; ?>"><?php echo "$i/5"; ?></option>
+              <?php endfor; ?>
+          </select>
+        <label for="comment">Comment:</label>
+        <textarea name="comment" id="comment" rows="4" required></textarea>
+        <button type="submit">Submit Review</button>
+      </form>
+    <?php else: ?>
+      <p>You must have at least one booking to submit a review.</p>
+    <?php endif; ?>
+    </div>
   </main>
 
   <footer>
